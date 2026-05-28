@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SiBencan — Sistem Informasi Bencana Jawa Barat</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg:        #0b0f14;
+            --bg2:       #111820;
+            --bg3:       #161e28;
+            --border:    rgba(255,255,255,0.07);
+            --accent:    #e8533a;
+            --accent2:   #f0a05a;
+            --teal:      #3ab8c8;
+            --text:      #e8edf2;
+            --muted:     #7a8fa6;
+            --card-glow: rgba(232, 83, 58, 0.12);
+        }
+
+        * { margin:0; padding:0; box-sizing:border-box; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ── LOADER ── */
+        #loader {
+            position: fixed; inset: 0;
+            background: var(--bg);
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.6s ease;
+        }
+        .loader-icon {
+            width: 56px; height: 56px;
+            position: relative;
+        }
+        .loader-icon::before, .loader-icon::after {
+            content: '';
+            position: absolute; inset: 0;
+            border-radius: 50%;
+            border: 3px solid transparent;
+        }
+        .loader-icon::before {
+            border-top-color: var(--accent);
+            animation: spin 1s linear infinite;
+        }
+        .loader-icon::after {
+            border-right-color: var(--teal);
+            animation: spin 1.6s linear infinite reverse;
+        }
+        .loader-label {
+            margin-top: 20px;
+            font-family: 'Syne', sans-serif;
+            font-size: 0.75rem;
+            letter-spacing: 0.25em;
+            text-transform: uppercase;
+            color: var(--muted);
+            animation: pulse 1.8s ease-in-out infinite;
+        }
+        @keyframes spin   { to { transform: rotate(360deg); } }
+        @keyframes pulse  { 0%,100%{opacity:.4} 50%{opacity:1} }
+
+        /* ── HEADER ── */
+        header {
+            position: sticky; top: 0; z-index: 100;
+            background: rgba(11,15,20,0.85);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border-bottom: 1px solid var(--border);
+            padding: 0 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 64px;
+            animation: slideDown 0.5s ease both;
+            animation-delay: 1.8s;
+        }
+        @keyframes slideDown {
+            from { opacity:0; transform:translateY(-16px); }
+            to   { opacity:1; transform:translateY(0); }
+        }
+
+        .logo {
+            display: flex; align-items: center; gap: 12px;
+        }
+        .logo-badge {
+            width: 32px; height: 32px;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px;
+        }
+        .logo-text {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: 1.05rem;
+            letter-spacing: 0.02em;
+        }
+        .logo-text span {
+            color: var(--accent);
+        }
+        .logo-sub {
+            font-size: 0.65rem;
+            color: var(--muted);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            display: block;
+            line-height: 1;
+            margin-top: 2px;
+        }
+
+        nav { display: flex; gap: 6px; }
+        nav button {
+            background: transparent;
+            color: var(--muted);
+            border: 1px solid transparent;
+            padding: 7px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.875rem;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+            transition: all 0.25s ease;
+        }
+        nav button:hover {
+            color: var(--text);
+            background: var(--bg3);
+            border-color: var(--border);
+        }
+        nav button.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        /* ── STATUS BAR ── */
+        .status-bar {
+            background: var(--bg2);
+            border-bottom: 1px solid var(--border);
+            padding: 8px 32px;
+            display: flex; align-items: center; gap: 24px;
+            font-size: 0.75rem;
+            color: var(--muted);
+            animation: fadeIn 0.5s ease both;
+            animation-delay: 2s;
+        }
+        .status-dot {
+            display: inline-block;
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: #2ecc71;
+            margin-right: 6px;
+            animation: blink 2s ease-in-out infinite;
+        }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+        .status-sep { color: var(--border); }
+
+        /* ── PAGES ── */
+        .page-section {
+            display: none;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 48px 32px 80px;
+        }
+        .page-section.active { display: block; }
+
+        /* ── PAGE HEADER ── */
+        .page-header {
+            margin-bottom: 40px;
+            animation: fadeUp 0.5s ease both;
+        }
+        @keyframes fadeUp {
+            from { opacity:0; transform:translateY(20px); }
+            to   { opacity:1; transform:translateY(0); }
+        }
+        .page-tag {
+            display: inline-block;
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--accent);
+            background: rgba(232,83,58,0.1);
+            border: 1px solid rgba(232,83,58,0.25);
+            padding: 4px 12px;
+            border-radius: 100px;
+            margin-bottom: 14px;
+        }
+        .page-title {
+            font-family: 'Syne', sans-serif;
+            font-size: clamp(1.8rem, 4vw, 2.6rem);
+            font-weight: 800;
+            line-height: 1.15;
+            color: var(--text);
+        }
+        .page-title em {
+            font-style: normal;
+            color: var(--accent);
+        }
+        .page-desc {
+            margin-top: 12px;
+            font-size: 0.95rem;
+            color: var(--muted);
+            max-width: 540px;
+            line-height: 1.7;
+        }
+
+        /* ── STAT CARDS ── */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 36px;
+            animation: fadeUp 0.5s ease both;
+            animation-delay: 0.1s;
+        }
+        .stat-card {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 22px 24px;
+            position: relative;
+            overflow: hidden;
+            transition: border-color 0.3s, transform 0.3s;
+        }
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: var(--card-glow);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .stat-card:hover { transform: translateY(-3px); border-color: rgba(232,83,58,0.3); }
+        .stat-card:hover::before { opacity: 1; }
+        .stat-icon {
+            font-size: 1.5rem;
+            margin-bottom: 12px;
+            display: block;
+        }
+        .stat-value {
+            font-family: 'Syne', sans-serif;
+            font-size: 2rem;
+            font-weight: 800;
+            line-height: 1;
+            color: var(--text);
+        }
+        .stat-label {
+            font-size: 0.78rem;
+            color: var(--muted);
+            margin-top: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+        .stat-trend {
+            font-size: 0.75rem;
+            font-weight: 500;
+            padding: 2px 8px;
+            border-radius: 100px;
+            display: inline-block;
+            margin-top: 8px;
+        }
+        .trend-up   { background: rgba(231,76,60,0.15); color: #e74c3c; }
+        .trend-down { background: rgba(46,204,113,0.15); color: #2ecc71; }
+
+        /* ── ABOUT SECTION ── */
+        .about-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            animation: fadeUp 0.5s ease both;
+            animation-delay: 0.2s;
+        }
+        @media (max-width: 680px) { .about-grid { grid-template-columns: 1fr; } }
+
+        .info-card {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 28px;
+            transition: border-color 0.3s, transform 0.3s;
+        }
+        .info-card:hover { transform: translateY(-3px); border-color: rgba(58,184,200,0.3); }
+        .info-card.full-width { grid-column: 1 / -1; }
+        .info-card h3 {
+            font-family: 'Syne', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 12px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .info-card h3 .ic {
+            width: 28px; height: 28px;
+            background: rgba(58,184,200,0.1);
+            border: 1px solid rgba(58,184,200,0.2);
+            border-radius: 8px;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 0.9rem;
+        }
+        .info-card p {
+            font-size: 0.88rem;
+            color: var(--muted);
+            line-height: 1.75;
+        }
+        .feature-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 4px;
+        }
+        .feature-list li {
+            font-size: 0.875rem;
+            color: var(--muted);
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            line-height: 1.5;
+        }
+        .feature-list li::before {
+            content: '→';
+            color: var(--teal);
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+        .cta-btn {
+            margin-top: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 11px 22px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: opacity 0.2s, transform 0.2s;
+        }
+        .cta-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+
+        /* ── BENCANA TAGS ── */
+        .bencana-tags {
+            display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px;
+        }
+        .tag {
+            font-size: 0.72rem;
+            padding: 4px 12px;
+            border-radius: 100px;
+            border: 1px solid var(--border);
+            color: var(--muted);
+            background: var(--bg3);
+            letter-spacing: 0.03em;
+        }
+        .tag.red   { border-color:rgba(231,76,60,0.35);  color:#e74c3c;  background:rgba(231,76,60,0.08); }
+        .tag.blue  { border-color:rgba(52,152,219,0.35); color:#3498db; background:rgba(52,152,219,0.08); }
+        .tag.green { border-color:rgba(46,204,113,0.35); color:#2ecc71; background:rgba(46,204,113,0.08); }
+        .tag.amber { border-color:rgba(243,156,18,0.35); color:#f39c12; background:rgba(243,156,18,0.08); }
+
+        /* ── DASHBOARD PAGE ── */
+        .dash-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 24px;
+            animation: fadeUp 0.5s ease both;
+        }
+        .iframe-wrapper {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+            position: relative;
+            height: 780px;
+            animation: fadeUp 0.5s ease both;
+            animation-delay: 0.15s;
+        }
+        .iframe-wrapper::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent), var(--accent2), var(--teal));
+        }
+        .iframe-wrapper iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+        }
+        .iframe-overlay {
+            position: absolute;
+            inset: 0;
+            background: var(--bg2);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            pointer-events: none;
+        }
+        .iframe-overlay.hidden { display: none; }
+        .iframe-overlay p {
+            font-size: 0.85rem;
+            color: var(--muted);
+        }
+
+        /* ── FOOTER ── */
+        footer {
+            border-top: 1px solid var(--border);
+            padding: 20px 32px;
+            text-align: center;
+            font-size: 0.75rem;
+            color: var(--muted);
+        }
+        footer span { color: var(--accent); }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- LOADER -->
+<div id="loader">
+    <div class="loader-icon"></div>
+    <div class="loader-label">Memuat Data Bencana…</div>
+</div>
+
+<!-- HEADER -->
+<header>
+    <div class="logo">
+        <div class="logo-badge">🌋</div>
+        <div>
+            <div class="logo-text">Pantau<span>Bencana</span></div>
+            <span class="logo-sub">Jawa Barat</span>
+        </div>
+    </div>
+    <nav>
+        <button id="btn-profile" class="active" onclick="showPage('profilePage', this)">Tentang</button>
+        <button id="btn-dashboard" onclick="showPage('dashboardPage', this)">Dashboard</button>
+    </nav>
+</header>
+
+<!-- STATUS BAR -->
+<div class="status-bar">
+    <span><span class="status-dot"></span>Sistem aktif &amp; terhubung</span>
+    <span class="status-sep">|</span>
+    <span>Provinsi Jawa Barat</span>
+    <span class="status-sep">|</span>
+    <span id="clock">—</span>
+</div>
+
+<!-- ═══════════════ PROFILE PAGE ═══════════════ -->
+<section id="profilePage" class="page-section active">
+
+    <div class="page-header">
+        <div class="page-tag">Tentang Portal</div>
+        <h1 class="page-title">Informasi Bencana<br><em>Jawa Barat</em></h1>
+        <p class="page-desc">Portal terpusat untuk pemantauan, pendataan, dan analisis kejadian bencana alam di 27 kabupaten/kota Jawa Barat.</p>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <span class="stat-icon">🗺️</span>
+            <div class="stat-value">27</div>
+            <div class="stat-label">Kab / Kota</div>
+            <span class="stat-trend trend-up">Seluruh wilayah</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-icon">📡</span>
+            <div class="stat-value">Real-time</div>
+            <div class="stat-label">Update Data</div>
+            <span class="stat-trend trend-down">Terkini</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-icon">📊</span>
+            <div class="stat-value">5+</div>
+            <div class="stat-label">Jenis Bencana</div>
+            <span class="stat-trend trend-up">Dipantau aktif</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-icon">🛡️</span>
+            <div class="stat-value">BPBD</div>
+            <div class="stat-label">Sumber Data</div>
+            <span class="stat-trend trend-down">Terverifikasi</span>
+        </div>
+    </div>
+
+    <!-- ABOUT CARDS -->
+    <div class="about-grid">
+        <div class="info-card full-width">
+            <h3><span class="ic">📌</span>Tentang Sistem</h3>
+            <p>SiBencan adalah platform informasi bencana yang dirancang untuk mendukung pengambilan keputusan cepat oleh pemerintah daerah, BPBD, dan masyarakat. Data dikumpulkan dari berbagai sumber resmi dan diproses secara otomatis untuk menghasilkan visualisasi yang mudah dipahami.</p>
+            <button class="cta-btn" onclick="showPage('dashboardPage', document.getElementById('btn-dashboard'))">Lihat Dashboard →</button>
+        </div>
+
+        <div class="info-card">
+            <h3><span class="ic">⚡</span>Fitur Utama</h3>
+            <ul class="feature-list">
+                <li>Visualisasi sebaran bencana interaktif per wilayah</li>
+                <li>Tren historis kejadian bencana tahun ke tahun</li>
+                <li>Statistik korban dan kerugian material</li>
+                <li>Filter berdasarkan jenis bencana &amp; periode waktu</li>
+            </ul>
+        </div>
+
+        <div class="info-card">
+            <h3><span class="ic">🌊</span>Jenis Bencana Terpantau</h3>
+            <div class="bencana-tags">
+                <span class="tag red">🌊 Banjir</span>
+                <span class="tag amber">🏔️ Longsor</span>
+                <span class="tag red">🌋 Gempa Bumi</span>
+                <span class="tag blue">🌪️ Angin Kencang</span>
+                <span class="tag green">🔥 Kebakaran</span>
+                <span class="tag blue">☔ Cuaca Ekstrem</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════ DASHBOARD PAGE ═══════════════ -->
+<section id="dashboardPage" class="page-section">
+
+    <div class="page-header dash-header">
+        <div>
+            <div class="page-tag">Dashboard Interaktif</div>
+            <h1 class="page-title">Data &amp; <em>Statistik</em></h1>
+            <p class="page-desc">Visualisasi komprehensif bencana alam Jawa Barat. Gunakan filter di dalam dashboard untuk eksplorasi data.</p>
+        </div>
+    </div>
+
+    <div class="iframe-wrapper">
+        <div class="iframe-overlay" id="iframeOverlay">
+            <div class="loader-icon" style="width:40px;height:40px"></div>
+            <p>Memuat visualisasi data…</p>
+        </div>
+        <iframe
+            src="https://datastudio.google.com/embed/reporting/c8830df0-7acc-4885-9806-7e1f5d93c153/page/EklyF"
+            frameborder="0"
+            allowfullscreen
+            onload="document.getElementById('iframeOverlay').classList.add('hidden')"
+            sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox">
+        </iframe>
+    </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+    Sistem Informasi Bencana Alam &nbsp;·&nbsp; <span>Jawa Barat</span> &nbsp;·&nbsp; Data bersumber dari BPBD Provinsi
+</footer>
+
+<script>
+    /* ── LOADER ── */
+    window.addEventListener('load', () => {
+        const loader = document.getElementById('loader');
+        setTimeout(() => {
+            loader.style.opacity = '0';
+            setTimeout(() => loader.style.display = 'none', 600);
+        }, 1600);
+    });
+
+    /* ── PAGE SWITCHING ── */
+    function showPage(pageId, btn) {
+        document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+        document.getElementById(pageId).classList.add('active');
+        if (btn) btn.classList.add('active');
+    }
+
+    /* ── LIVE CLOCK ── */
+    function updateClock() {
+        const now = new Date();
+        document.getElementById('clock').textContent =
+            now.toLocaleString('id-ID', { dateStyle: 'long', timeStyle: 'short' });
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+</script>
+</body>
+</html>
